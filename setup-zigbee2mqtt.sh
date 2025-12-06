@@ -35,7 +35,8 @@ sudo apt-get install -y \
   g++ \
   nfs-common \
   curl \
-  git
+  git \
+  libsystemd-dev
 
 # Install Node.js LTS from NodeSource (works on Ubuntu on RPi)
 # Adjust version (e.g. 20.x) if needed, Zigbee2MQTT supports recent LTS versions.
@@ -57,8 +58,9 @@ sudo mkdir -p "$Z2M_DIR"
 sudo mkdir -p "$NFS_MOUNT"
 
 echo "=== Cloning Zigbee2MQTT (if not already present) ==="
+sudo git config --global --add safe.directory /opt/zigbee2mqtt
 if [ ! -d "$Z2M_DIR/.git" ]; then
-  sudo git clone https://github.com/Koenkk/zigbee2mqtt.git "$Z2M_DIR"
+  sudo git clone --depth 1 https://github.com/Koenkk/zigbee2mqtt.git "$Z2M_DIR"
 else
   echo "Zigbee2MQTT already cloned, pulling latest changes."
   cd "$Z2M_DIR"
@@ -70,8 +72,11 @@ sudo chown -R "$Z2M_USER":"$Z2M_USER" "$Z2M_DIR"
 
 echo "=== Installing Zigbee2MQTT dependencies (this may take a while) ==="
 cd "$Z2M_DIR"
-# Use npm ci for reproducible install if package-lock.json exists
-sudo -u "$Z2M_USER" npm ci --unsafe-perm
+sudo corepack enable
+sudo -u "$Z2M_USER" \
+  COREPACK_ENABLE_STRICT=0 \
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+  pnpm install --frozen-lockfile
 
 echo "=== Mounting NFS share for configuration restore ==="
 if mountpoint -q "$NFS_MOUNT"; then
