@@ -85,16 +85,28 @@ else
   sudo mount -t nfs "$NFS_SERVER:$NFS_EXPORT" "$NFS_MOUNT"
 fi
 
-echo "**** EXIT HERE ***"
-exit 
-
 echo "=== Restoring Zigbee2MQTT configuration from NFS ==="
 # Expecting configuration.yaml and possibly data/ directory in the NFS share.
 # This copies everything from the NFS backup into the Zigbee2MQTT data dir.
 
 # Zigbee2MQTT by default uses $Z2M_DIR/data for configuration.yaml, etc.
 sudo mkdir -p "$Z2M_DIR/data"
-sudo rsync -a "$NFS_MOUNT"/ "$Z2M_DIR/data"/
+latest_backup=$(ls -1t "$NFS_MOUNT"/zigbee2mqtt-*.tar.gz 2>/dev/null | head -n 1)
+
+if [[ -z "${latest_backup}" ]]; then
+    echo "No zigbee2mqtt-*.tar.gz backups found in $NFS_MOUNT" >&2
+    exit 1
+fi
+
+echo "Latest backup: $latest_backup"
+echo "Extracting to: $Z2M_DIR/data"
+
+sudo rm -rf "$Z2M_DIR/data"/*
+sudo -u "$Z2M_USER" mkdir -p "$Z2M_DIR/data"
+
+sudo -u "$Z2M_USER" tar -xzf "$latest_backup" -C "$Z2M_DIR/data"
+
+echo "Extraction complete."
 
 echo "=== Unmounting NFS share ==="
 sudo umount "$NFS_MOUNT"
@@ -121,6 +133,9 @@ fi
 echo "=== Setting final ownership and permissions ==="
 sudo chown -R "$Z2M_USER":"$Z2M_USER" "$Z2M_DIR"
 sudo chmod -R 755 "$Z2M_DIR"
+
+echo "**** EXIT HERE ***"
+exit
 
 echo "=== Creating systemd service for Zigbee2MQTT ==="
 SERVICE_FILE="/etc/systemd/system/zigbee2mqtt.service"
