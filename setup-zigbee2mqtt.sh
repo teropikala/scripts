@@ -134,31 +134,64 @@ echo "=== Setting final ownership and permissions ==="
 sudo chown -R "$Z2M_USER":"$Z2M_USER" "$Z2M_DIR"
 sudo chmod -R 755 "$Z2M_DIR"
 
-echo "**** EXIT HERE ***"
-exit
-
 echo "=== Creating systemd service for Zigbee2MQTT ==="
 SERVICE_FILE="/etc/systemd/system/zigbee2mqtt.service"
 
 sudo bash -c "cat > '$SERVICE_FILE'" <<EOF
 [Unit]
 Description=Zigbee2MQTT
+# Start only after basic network is up
 After=network.target
 
 [Service]
+########################################################
+# ENVIRONMENT & RUNTIME MODE
+########################################################
+# Run in production mode (enables optimizations)
+Environment=NODE_ENV=production
+Environment=TZ=$TZ
+# Limit Node.js memory usage (useful on low-RAM devices)
+Environment=NODE_OPTIONS=--max_old_space_size=256
+
+########################################################
+# USER / GROUP / PERMISSIONS
+########################################################
 User=$Z2M_USER
 Group=$Z2M_USER
+
+########################################################
+# WORKING DIRECTORY
+########################################################
 WorkingDirectory=$Z2M_DIR
-ExecStart=/usr/bin/npm start
-Environment=TZ=$TZ
-# Ensure Node does not run out of memory on low-RAM devices
-Environment=NODE_OPTIONS=--max_old_space_size=256
-Restart=on-failure
-RestartSec=10
-# Give access to the Zigbee adapter
-# (device permissions are usually handled via udev; see notes below)
+
+########################################################
+# EXECUTION COMMAND
+########################################################
+ExecStart=/usr/bin/node index.js
+
+########################################################
+# OUTPUT / LOGGING
+########################################################
+# Forward stdout to systemd/journal (visible via journalctl)
+StandardOutput=inherit
+StandardError=inherit
+
+########################################################
+# SERVICE TYPE & WATCHDOG
+########################################################
+# Expect sd_notify() from Zigbee2MQTT for readiness (if supported)
+Type=notify
+# Systemd watchdog: restart if no notification within 10 seconds
+WatchdogSec=10s
+
+########################################################
+# RESTART POLICY
+########################################################
+Restart=always
+RestartSec=10s
 
 [Install]
+# Start automatically in normal multi-user (non-graphical) mode
 WantedBy=multi-user.target
 EOF
 
