@@ -207,15 +207,14 @@ sudo bash -c "cat > '/usr/local/bin/backup_z2m.sh'" <<EOF
 #!/bin/bash
 set -e
 
-Z2M_DATA=$Z2M_DIR/data
-BACKUP_DIR="/mnt/zigbee2mqtt_backups"
-TIMESTAMP=\$(date +"%Y%m%d-%H%M%S")
-BACKUP_FILE="\${BACKUP_DIR}/zigbee2mqtt-\${TIMESTAMP}.tar.gz"
-RETENTION_DAYS=14
-
 NFS_SERVER="$NFS_SERVER"
 NFS_EXPORT="$NFS_EXPORT"
 NFS_MOUNT="$NFS_MOUNT"
+
+Z2M_DATA=$Z2M_DIR/data
+TIMESTAMP=\$(date +"%Y%m%d-%H%M%S")
+BACKUP_FILE="${NFS_MOUNT}/zigbee2mqtt-\${TIMESTAMP}.tar.gz"
+RETENTION_DAYS=14
 
 # Ensure NFS is mounted
 mkdir -p "$NFS_MOUNT"
@@ -234,10 +233,11 @@ tar -czf "\$BACKUP_FILE" -C "\$Z2M_DATA" .
 # Start Zigbee2MQTT
 systemctl start zigbee2mqtt
 
+# Cleanup old backups
+find "\$NFS_MOUNT" -type f -name "zigbee2mqtt-*.tar.gz" -mtime +\$RETENTION_DAYS -delete
+
 umount "\$NFS_MOUNT"
 
-# Cleanup old backups
-find "\$BACKUP_DIR" -type f -name "zigbee2mqtt-*.tar.gz" -mtime +\$RETENTION_DAYS -delete
 EOF
 
 echo "=== Schedule daily backup at 2:30am ==="
