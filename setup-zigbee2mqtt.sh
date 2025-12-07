@@ -46,6 +46,7 @@ echo "npm version: $(npm -v)"
 echo "=== Creating Zigbee2MQTT system user ==="
 if ! id "$Z2M_USER" >/dev/null 2>&1; then
   sudo useradd -r -s /usr/sbin/nologin -d "$Z2M_DIR" "$Z2M_USER"
+  sudo usermod -aG dialout "$Z2M_USER"
 fi
 
 echo "=== Creating directories ==="
@@ -159,14 +160,14 @@ StandardError=inherit
 ########################################################
 # Expect sd_notify() from Zigbee2MQTT for readiness (if supported)
 Type=notify
-# Systemd watchdog: restart if no notification within 10 seconds
-WatchdogSec=10s
+# Systemd watchdog: restart if no notification within 30 seconds
+WatchdogSec=30s
 
 ########################################################
 # RESTART POLICY
 ########################################################
 Restart=always
-RestartSec=10s
+RestartSec=30s
 
 [Install]
 # Start automatically in normal multi-user (non-graphical) mode
