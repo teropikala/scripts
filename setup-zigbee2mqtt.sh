@@ -200,6 +200,63 @@ sudo systemctl daemon-reload
 sudo systemctl enable zigbee2mqtt.service
 sudo systemctl start zigbee2mqtt.service
 
+
+echo "=== Create backup script ==="
+sudo bash -c "cat > '/usr/local/bin/backup_z2m.sh'" <<EOF
+#!/bin/bash
+set -e
+
+Z2M_DATA=$Z2M_DIR/data
+BACKUP_DIR="/mnt/zigbee2mqtt_backups"
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+BACKUP_FILE="${BACKUP_DIR}/zigbee2mqtt-${TIMESTAMP}.tar.gz"
+RETENTION_DAYS=14
+
+# Ensure NFS is mounted
+if ! mountpoint -q "$BACKUP_DIR"; then
+    echo "ERROR: $BACKUP_DIR is not mounted. Aborting."
+    exit 1
+fi
+
+# Optionally stop Zigbee2MQTT for a consistent backup (uncomment if desired)
+# systemctl stop zigbee2mqtt
+
+# Create archive
+tar -czf "$BACKUP_FILE" -C "$Z2M_DATA" .
+
+# Optionally restart Zigbee2MQTT (if stopped above)
+# systemctl start zigbee2mqtt
+
+# Cleanup old backups
+find "$BACKUP_DIR" -type f -name "zigbee2mqtt-*.tar.gz" -mtime +$RETENTION_DAYS -delete
+EOF
+
+echo "=== Schedule daily backup at 2:30am ==="
+# Cron entry 
+CRON_ENTRY='30 2 * * * /usr/local/bin/backup_z2m.sh >/var/log/backup_z2m.log 2>&1'
+
+# Check if the exact line already exists in the user's crontab
+# (using grep -F for a fixed-string match)
+if sudo crontab -u root -l 2>/dev/null | grep -Fq "$CRON_ENTRY"; then
+    # Already present; nothing to do
+    exit 0
+fi
+
+# Add the entry:
+# - crontab -l 2>/dev/null prints existing crontab if any
+# - echo "$CRON_ENTRY" adds the new line
+# - crontab - installs the combined crontab
+{
+    sudo crontab -u root -l 2>/dev/null
+    echo "$CRON_ENTRY"
+} | sudo crontab -u root -
+
+
+echo "=== Zigbee2MQTT installation complete ==="
+echo "Check service status: sudo systemctl status zigbee2mqtt"
+echo "Check logs:          journalctl -u zigbee2mqtt -f"
+echo "If web UI is enabled in configuration.yaml, open: http://<this-pi-ip>:8080"
+
 echo "=== Zigbee2MQTT installation complete ==="
 echo "Check service status: sudo systemctl status zigbee2mqtt"
 echo "Check logs:          journalctl -u zigbee2mqtt -f"
