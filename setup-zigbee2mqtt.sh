@@ -64,6 +64,8 @@ if [ ! -d "$Z2M_DIR/.git" ]; then
 else
   echo "Zigbee2MQTT already cloned, pulling latest changes."
   cd "$Z2M_DIR"
+  sudo git reset --hard
+  sudo git clean -fdx
   sudo git pull
 fi
 
@@ -200,7 +202,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable zigbee2mqtt.service
 sudo systemctl start zigbee2mqtt.service
 
-
 echo "=== Create backup script ==="
 sudo bash -c "cat > '/usr/local/bin/backup_z2m.sh'" <<EOF
 #!/bin/bash
@@ -208,27 +209,35 @@ set -e
 
 Z2M_DATA=$Z2M_DIR/data
 BACKUP_DIR="/mnt/zigbee2mqtt_backups"
-TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-BACKUP_FILE="${BACKUP_DIR}/zigbee2mqtt-${TIMESTAMP}.tar.gz"
+TIMESTAMP=\$(date +"%Y%m%d-%H%M%S")
+BACKUP_FILE="\${BACKUP_DIR}/zigbee2mqtt-\${TIMESTAMP}.tar.gz"
 RETENTION_DAYS=14
 
+NFS_SERVER="$NFS_SERVER"
+NFS_EXPORT="$NFS_EXPORT"
+NFS_MOUNT="$NFS_MOUNT"
+
 # Ensure NFS is mounted
-if ! mountpoint -q "$BACKUP_DIR"; then
-    echo "ERROR: $BACKUP_DIR is not mounted. Aborting."
-    exit 1
+mkdir -p "$NFS_MOUNT"
+if mountpoint -q "\$NFS_MOUNT"; then
+  echo "NFS mountpoint \$NFS_MOUNT is already mounted, skipping mount."
+else
+  mount -t nfs "\$NFS_SERVER:\$NFS_EXPORT" "\$NFS_MOUNT"
 fi
 
-# Optionally stop Zigbee2MQTT for a consistent backup (uncomment if desired)
-# systemctl stop zigbee2mqtt
+# Stop Zigbee2MQTT for a consistent backup
+systemctl stop zigbee2mqtt
 
 # Create archive
-tar -czf "$BACKUP_FILE" -C "$Z2M_DATA" .
+tar -czf "\$BACKUP_FILE" -C "\$Z2M_DATA" .
 
-# Optionally restart Zigbee2MQTT (if stopped above)
-# systemctl start zigbee2mqtt
+# Start Zigbee2MQTT
+systemctl start zigbee2mqtt
+
+umount "\$NFS_MOUNT"
 
 # Cleanup old backups
-find "$BACKUP_DIR" -type f -name "zigbee2mqtt-*.tar.gz" -mtime +$RETENTION_DAYS -delete
+find "\$BACKUP_DIR" -type f -name "zigbee2mqtt-*.tar.gz" -mtime +\$RETENTION_DAYS -delete
 EOF
 
 echo "=== Schedule daily backup at 2:30am ==="
