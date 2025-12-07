@@ -12,11 +12,6 @@ NFS_MOUNT="/mnt/zigbee2mqtt-backup"       # local temporary mount point
 Z2M_DIR="/opt/zigbee2mqtt"                # Zigbee2MQTT install dir
 Z2M_USER="zigbee2mqtt"                    # system user to run service
 
-# Device for your Zigbee adapter (check with `ls /dev/serial/by-id/`)
-Z2M_SERIAL_DEVICE="/dev/serial/by-id/usb-Silicon_Labs_Sonoff_Zigbee_3.0_USB_Dongle_Plus_0001-if00-port0"
-
-# Timezone (optional)
-TZ="Etc/UTC"
 
 #######################################################################
 
@@ -113,24 +108,6 @@ echo "Extraction complete."
 echo "=== Unmounting NFS share ==="
 sudo umount "$NFS_MOUNT"
 
-echo "=== Adjusting configuration for this host (serial, timezone) ==="
-# Optional: patch configuration.yaml to ensure the correct serial port, etc.
-# This assumes your configuration.yaml already exists in data/.
-# You can comment this section out if you manage these values manually.
-
-CONFIG_FILE="$Z2M_DIR/data/configuration.yaml"
-
-if [ -f "$CONFIG_FILE" ]; then
-  # Ensure serial port is set correctly.
-  # This is a naive replace; adjust regex if your file structure differs.
-  sudo sed -i "s|^  port: .*|  port: ${Z2M_SERIAL_DEVICE}|g" "$CONFIG_FILE" || true
-
-  # Timezone is usually configured via OS, but if you use it in config, you can patch here.
-  # Example (commented out):
-  # sudo sed -i "s|^timezone: .*|timezone: ${TZ}|g" "$CONFIG_FILE" || true
-else
-  echo "WARNING: $CONFIG_FILE not found. You may need to create/adjust it manually."
-fi
 
 echo "=== Setting final ownership and permissions ==="
 sudo chown -R "$Z2M_USER":"$Z2M_USER" "$Z2M_DIR"
