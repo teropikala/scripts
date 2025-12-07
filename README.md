@@ -1,17 +1,10 @@
-# scripts
-Setup scripts for personal use. 
-
-
-
 # Zigbee2MQTT 
 
-Configure Rasberry Pi with Zigbee2MQTT and restore latest backups
+This script turns a fresh Raspberry Pi into a disaster recovery Zigbee2MQTT node using existing NFS-based backups. It installs all dependencies, clones Zigbee2MQTT, restores the latest backup archive from NFS share, and creates a systemd service so Zigbee2MQTT runs automatically on boot. 
 
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/teropikala/scripts/refs/heads/main/setup-zigbee2mqtt.sh)"
+It also installs a daily backup job that stops Zigbee2MQTT, archives `/opt/zigbee2mqtt/data` to NFS, then restarts the service.
 
-30 2 * * * /usr/local/bin/backup_z2m.sh >/var/log/backup_z2m.log 2>&1
+Usage:
 
-
-
-
+`bash -c "$(curl -fsSL https://raw.githubusercontent.com/teropikala/scripts/refs/heads/main/setup-zigbee2mqtt.sh)"`
 

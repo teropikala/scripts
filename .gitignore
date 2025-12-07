@@ -1,0 +1,8 @@
+# Those pesky .DS_Store files on Mac
+.DS_Store
+
+# IntelliJ IDEA
+.idea
+
+# Ignore local editor settings
+/.vscode/settings.json
