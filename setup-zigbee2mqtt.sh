@@ -242,8 +242,3 @@ echo "=== Zigbee2MQTT installation complete ==="
 echo "Check service status: sudo systemctl status zigbee2mqtt"
 echo "Check logs:          journalctl -u zigbee2mqtt -f"
 echo "If web UI is enabled in configuration.yaml, open: http://<this-pi-ip>:8080"
-
-echo "=== Zigbee2MQTT installation complete ==="
-echo "Check service status: sudo systemctl status zigbee2mqtt"
-echo "Check logs:          journalctl -u zigbee2mqtt -f"
-echo "If web UI is enabled in configuration.yaml, open: http://<this-pi-ip>:8080"
