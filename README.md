@@ -8,3 +8,7 @@ Usage:
 
 `bash -c "$(curl -fsSL https://raw.githubusercontent.com/teropikala/scripts/main/setup-zigbee2mqtt.sh)"`
 
+
+Todo: 
+
+- Fix crontab update for backups
