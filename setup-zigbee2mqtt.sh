@@ -128,7 +128,6 @@ After=network.target
 ########################################################
 # Run in production mode (enables optimizations)
 Environment=NODE_ENV=production
-Environment=TZ=$TZ
 # Limit Node.js memory usage (useful on low-RAM devices)
 Environment=NODE_OPTIONS=--max_old_space_size=256
 
