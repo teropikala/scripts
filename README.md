@@ -6,5 +6,5 @@ It also installs a daily backup job that stops Zigbee2MQTT, archives `/opt/zigbe
 
 Usage:
 
-`bash -c "$(curl -fsSL https://raw.githubusercontent.com/teropikala/scripts/refs/heads/main/setup-zigbee2mqtt.sh)"`
+`bash -c "$(curl -fsSL https://raw.githubusercontent.com/teropikala/scripts/main/setup-zigbee2mqtt.sh)"`
 
