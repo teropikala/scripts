@@ -163,7 +163,21 @@ curl "${curl_common[@]}" -L -o /dev/null "$BOOKING_URL" || true
 for embassy_entry in "${EMBASSIES[@]}"; do
   EMB_ID="${embassy_entry%%:*}"
   EMB_NAME="${embassy_entry#*:}"
-  SLOTS_URL="${BASE_URL}/api/customer/servicelocation/${EMB_ID}/freeslot?service=PASSPORT_OR_ID_CARD&participantCount=1"
+  # Calculate date range for API: from (now) to (now + 30 days) in UTC
+  # Example: 2026-01-25T17:00:00.000Z
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    FROM_DATE=$(date -u "+%Y-%m-%dT%H:%M:%S.000Z")
+    TO_DATE=$(date -u -v+30d "+%Y-%m-%dT%H:%M:%S.999Z")
+  else
+    FROM_DATE=$(date -u "+%Y-%m-%dT%H:%M:%S.000Z")
+    TO_DATE=$(date -u -d "+30 days" "+%Y-%m-%dT%H:%M:%S.999Z")
+  fi
+
+  # URL encode the dates
+  FROM_DATE_ENC=$(echo "$FROM_DATE" | sed 's/:/%3A/g')
+  TO_DATE_ENC=$(echo "$TO_DATE" | sed 's/:/%3A/g')
+
+  SLOTS_URL="${BASE_URL}/api/customer/servicelocation/${EMB_ID}/freeslotrange?service=PASSPORT_OR_ID_CARD&participantCount=1&from=${FROM_DATE_ENC}&to=${TO_DATE_ENC}&newAppointment=true"
 
   debug "Step F: Calling slots API for ${EMB_NAME} (ID: ${EMB_ID})"
   F_HEADERS="$(curl "${curl_common[@]}" -L -D - \
