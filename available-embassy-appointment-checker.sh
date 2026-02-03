@@ -2,21 +2,39 @@
 set -euo pipefail
 
 # Check for available passport appointment slots at Finnish Embassy in UK.
-# Usage: FIN_APPT_USER="..." FIN_APPT_PASS="..." ./available-embassy-appointment-checker.sh
+#
+# Environment Variables:
+#  FIN_APPT_USER: Username for https://finlandappointment.fi/
+#  FIN_APPT_PASS: Password for https://finlandappointment.fi/
+#  CLICKSEND_USER: Username for sending SMS messages via ClickSend
+#  CLICKSEND_KEY: Authentication key for ClickSend
+#  CLICKSEND_TO: Phone number to send messages to.
+#  DEBUG: Set to 1 to print debugging output
+#  CURL_VERBOSE: Set to 1 to display curl output (very verbose!)
+#
+# Usage:
+#  FIN_APPT_USER="..." FIN_APPT_PASS="..." CLICKSEND_USER="..." CLICKSEND_KEY="..." CLICKSEND_TO="..." ./available-embassy-appointment-checker.sh
 #
 # NOTE: Please do not run this too frequently (e.g., more than once every 15-30 minutes)
-# to be respectful to the service and avoid having your IP address blocked.
+# to be respectful to the service and avoid having your username or IP address blocked.
 
 USER="${FIN_APPT_USER:-}"
 PASS="${FIN_APPT_PASS:-}"
+CLICKSEND_USER="${CLICKSEND_USER:-}"
+CLICKSEND_KEY="${CLICKSEND_KEY:-}"
+CLICKSEND_TO="${CLICKSEND_TO:-}"
 COOKIE_JAR="${FIN_APPT_COOKIE_JAR:-/tmp/finlandappointment.cookies.txt}"
 
 DEBUG="${DEBUG:-0}"
 CURL_VERBOSE="${CURL_VERBOSE:-0}"
-MASK_SECRETS="${MASK_SECRETS:-1}"
 
 if [[ -z "$USER" || -z "$PASS" ]]; then
   echo "ERROR: Set FIN_APPT_USER and FIN_APPT_PASS environment variables." >&2
+  exit 2
+fi
+
+if [[ -z "$CLICKSEND_USER" || -z "$CLICKSEND_KEY" || -z "$CLICKSEND_TO" ]]; then
+  echo "ERROR: Set CLICKSEND_USER, CLICKSEND_KEY and CLICKSEND_TO environment variables." >&2
   exit 2
 fi
 
@@ -39,13 +57,24 @@ debug() {
   fi
 }
 
-mask() {
-  local s="$1"
-  if [[ "$MASK_SECRETS" == "1" ]]; then
-    s="${s//${USER}/<USER>}"
-    s="${s//${PASS}/<PASS>}"
+send_sms() {
+  local message="$1"
+  debug "Sending SMS to $CLICKSEND_TO: $message"
+
+  local payload
+  payload="$(jq -n --arg body "$message" --arg to "$CLICKSEND_TO" '{messages: [{body: $body, to: $to}]}')"
+
+  local response
+  response="$(curl -sS -u "${CLICKSEND_USER}:${CLICKSEND_KEY}" \
+    -H "Content-Type: application/json" \
+    -X POST "https://rest.clicksend.com/v3/sms/send" \
+    -d "$payload")"
+
+  if echo "$response" | jq -e '.response_code == "SUCCESS"' >/dev/null; then
+    debug "SMS sent successfully."
+  else
+    echo "ERROR: Failed to send SMS via ClickSend: $response" >&2
   fi
-  printf '%s' "$s"
 }
 
 
@@ -166,7 +195,8 @@ if ! echo "$SLOTS_JSON" | jq -e . >/dev/null 2>&1; then
 fi
 
 if [[ "$(echo "$SLOTS_JSON" | jq 'length')" -gt 0 ]]; then
-  echo "Slots available"
+  echo "Slots available; SMS notification will be sent"
+  send_sms "Passport appointment slots available!"
 else
-  debug "No slots (empty array)."
+  echo "No slots available"
 fi
