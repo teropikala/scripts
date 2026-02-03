@@ -82,6 +82,8 @@ curl_common=(
   -sS
   -c "$COOKIE_JAR" -b "$COOKIE_JAR"
   -A "Mozilla/5.0"
+  -H "Contact: tero@pikala.com"
+  -H "X-Purpose: Automated check for available passport appointments. Please contact if this causes issues."
 )
 
 if [[ "$CURL_VERBOSE" == "1" ]]; then
