@@ -11,7 +11,7 @@ df['timestamp'] = pd.to_datetime(df['timestamp']).dt.round('h')
 # (use sum/max/first depending on what "nr" means)
 df_agg = (
     df.groupby(['timestamp', 'location'], as_index=False)['nr']
-      .sum()
+      .max()
 )
 
 # Pivot: one row per timestamp, one column per location
