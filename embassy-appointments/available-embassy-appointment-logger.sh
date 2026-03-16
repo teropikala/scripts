@@ -165,14 +165,19 @@ curl "${curl_common[@]}" -L -o /dev/null "$BOOKING_URL" || true
 for embassy_entry in "${EMBASSIES[@]}"; do
   EMB_ID="${embassy_entry%%:*}"
   EMB_NAME="${embassy_entry#*:}"
-  # Calculate date range for API: from (now) to (now + 30 days) in UTC
-  # Example: 2026-01-25T17:00:00.000Z
+  # Calculate date range for API: next full calendar month in UTC
+  # FROM: first day of next month 00:00:00.000Z
+  # TO:   last day of next month 23:59:59.999Z
+  # Example (if now is 2026-01-25): FROM=2026-02-01... TO=2026-02-28...
+
   if [[ "$OSTYPE" == "darwin"* ]]; then
-    FROM_DATE=$(date -u "+%Y-%m-%dT%H:%M:%S.000Z")
-    TO_DATE=$(date -u -v+30d "+%Y-%m-%dT%H:%M:%S.999Z")
+    # macOS (BSD date)
+    FROM_DATE=$(date -u -v+1m -v1d -v0H -v0M -v0S "+%Y-%m-%dT%H:%M:%S.000Z")
+    TO_DATE=$(date -u -v+2m -v1d -v0H -v0M -v0S -v-1S "+%Y-%m-%dT%H:%M:%S.999Z")
   else
-    FROM_DATE=$(date -u "+%Y-%m-%dT%H:%M:%S.000Z")
-    TO_DATE=$(date -u -d "+30 days" "+%Y-%m-%dT%H:%M:%S.999Z")
+    # Linux (GNU date)
+    FROM_DATE=$(date -u -d "$(date -u +%Y-%m-01) +1 month" "+%Y-%m-%dT00:00:00.000Z")
+    TO_DATE=$(date -u -d "$(date -u +%Y-%m-01) +2 months -1 second" "+%Y-%m-%dT%H:%M:%S.999Z")
   fi
 
   # URL encode the dates
