@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-A personal collection of bash automation scripts across three domains:
+A personal collection of bash automation scripts across four domains:
 - **Embassy appointment tracking** — auth, polling, SMS alerts, and data logging for Finnish Embassy appointments
 - **Zigbee2MQTT setup** — full Raspberry Pi deployment and backup/recovery automation
 - **Web content analysis** — scraping and format extraction from sopimusmallit.com
+- **UniFi network maintenance** — cleaning ghost/phantom clients from a UniFi controller
 
 ## Running Scripts
 
@@ -67,6 +68,16 @@ Key config at top of the file:
 NFS_SERVER="192.168.1.34"
 NFS_EXPORT="/mnt/pool1/backup/zigbee2mqtt"
 ```
+
+### UniFi Ghost Client Cleanup
+
+`unifi-clean-ghost-clients.sh` removes phantom wired clients that UniFi logs from transient/spoofed MAC addresses (typically Wi-Fi management frames). It:
+1. Logs in via `/api/auth/login` and extracts the CSRF token from response headers
+2. Fetches full client history via the v2 history API
+3. Identifies ghosts: `type == "WIRED"`, empty OUI, no IP, not noted
+4. Forgets matching MACs via the `forget-sta` stamgr command
+
+Requires `curl` and `jq`. Set `DRY_RUN=1` to preview without deleting. Configure `UNIFI_HOST`, `UNIFI_USER`, and `UNIFI_PASS` at the top of the script.
 
 ### Web Scraping
 
