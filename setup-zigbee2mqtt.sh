@@ -199,6 +199,8 @@ if mountpoint -q "\$NFS_MOUNT"; then
   echo "NFS mountpoint \$NFS_MOUNT is already mounted, skipping mount."
 else
   mount -t nfs "\$NFS_SERVER:\$NFS_EXPORT" "\$NFS_MOUNT"
+  # let NFS settle before stopping Z2M; helps with undervoltage
+  sleep 5
 fi
 
 # Stop Zigbee2MQTT for a consistent backup
